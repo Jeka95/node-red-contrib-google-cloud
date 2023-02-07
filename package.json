@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-google-cloud-ubos",
-    "version": "0.0.27",
+    "version": "0.0.28",
     "description": "Node-RED nodes for Google Cloud Platform",
     "dependencies": {
         "@google-cloud/automl": "latest",
@@ -87,6 +87,6 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/GoogleCloudPlatform/node-red-contrib-google-cloud.git"
+        "url": "https://github.com/Jeka95/node-red-contrib-google-cloud.git"
     }
 }

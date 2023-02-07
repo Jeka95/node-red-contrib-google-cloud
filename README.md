@@ -1,6 +1,8 @@
 node-red-contrib-google-cloud(UBOS) **(BETA)**
 =====================================
 
+Fixed a bug that caused the node-red to crash.Fixed by [UBOS](https://ubos.tech/)
+
 **_This is not an official Google product._**
 
 [Node-RED](http://nodered.org) nodes for [Google Cloud Platform](https://cloud.google.com/).
