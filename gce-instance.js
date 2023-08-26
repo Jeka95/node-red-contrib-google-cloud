@@ -32,13 +32,13 @@ module.exports = function (RED) {
         const Input = async (msg, send, done) => {
 
             // Handle inputs
-            const account     = config.account ? config.account : msg.payload.account;
-            const instance    = config.instance ? config.instance : msg.payload.instance;
-            const keyFilename = config.keyFilename ? config.keyFilename : msg.payload.keyFilename
-            const operation   = config.operation ? config.operation : msg.payload.operation
-            const projectId   = config.projectId ? config.projectId : msg.payload.projectId
-            const template    = config.template ? config.template : msg.payload.template
-            const zone        = config.zone ? config.zone : msg.payload.zone
+            const account = config.account || msg.payload.account;
+            const instance = config.instance || msg.payload.instance;
+            const keyFilename = config.keyFilename || msg.payload.keyFilename
+            const operation = config.operation || msg.payload.operation
+            const projectId = config.projectId || msg.payload.projectId
+            const template = config.template || msg.payload.template
+            const zone = config.zone || msg.payload.zone
 
             let credentials;
             if (account) credentials = JSON.parse(RED.nodes.getCredentials(node).account);
@@ -69,106 +69,96 @@ module.exports = function (RED) {
 
             try {
                 /* Handle Get Instance */
-                if (operation === "get") {
-                    node.status({fill:"blue",shape:"dot",text:"getting instance"});
-                    await computeClient
-                        .get({
+                switch (operation) {
+                    //get instance info
+                    case "get":
+                        node.status({ fill: "blue", shape: "dot", text: "getting instance" });
+                        const response = await computeClient.get({
+                                instance: instance,
+                                project: projectId,
+                                zone: zone
+                        });
+                            
+                        msg.payload = response[0] || {}
+                        break;
+
+                    //list all gce instances in specified zone
+                    case "list":
+                        node.status({ fill: "blue", shape: "dot", text: "listing instances" });
+                        await computeClient.list({
+                            project: projectId,
+                            zone: zone
+                        });
+
+                        msg.payload = response[0] || [];
+                        break;
+                    
+                    //stop a running gce instance
+                    case "stop":
+                        node.status({ fill: "blue", shape: "dot", text: "stopping instance" });
+                        const response = await computeClient.stop({
+                            instance: instance,
+                            project: projectId,
+                            zone: zone
+                        });
+
+                        msg.payload = response[0] || {}
+                        break;
+
+                    // start a stopped gce instance
+                    case "start":
+                        node.status({ fill: "blue", shape: "dot", text: "starting instance" });
+                        const response = await computeClient.start({
+                            instance: instance,
+                            project: projectId,
+                            zone: zone
+                        });
+                        
+                        msg.payload = response[0] || {}
+                        break;
+
+                    // reset existing gce instance
+                    case "reset":
+                        node.status({ fill: "blue", shape: "dot", text: "resetting instance" });
+                        const response = await computeClient.reset({
+                            instance: instance,
+                            project: projectId,
+                            zone: zone
+                        });
+                            
+                        msg.payload = response[0] || {}
+                        break;
+                    
+                    //delete existing gce instance
+                    case "delete":
+                        node.status({ fill: "blue", shape: "dot", text: "deleting instance" });
+                        const response = await computeClient.delete({
                             instance: instance,
                             project: projectId,
                             zone: zone
                         })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
-                        });
-                }
-
-                /* Handle List Instances */
-                else if (operation === "list") {
-                    node.status({fill:"blue",shape:"dot",text:"listing instances"});
-                    await computeClient
-                        .list({
-                            project: projectId,
-                            zone: zone
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : [];
-                        });
-                }
-
-                /* Handle Stop Instance */
-                else if (operation === "stop") {
-                    node.status({fill:"blue",shape:"dot",text:"stopping instance"});
-                    await computeClient
-                        .stop({
-                            instance: instance,
-                            project: projectId,
-                            zone: zone
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
-                        });
-                }
-
-                /* Handle Start Instance */
-                else if (operation === "start") {
-                    node.status({fill:"blue",shape:"dot",text:"starting instance"});
-                    await computeClient
-                        .start({
-                            instance: instance,
-                            project: projectId,
-                            zone: zone
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
-                        });
-                }
-
-                /* Handle Reset Instance */
-                else if (operation === "reset") {
-                    node.status({fill:"blue",shape:"dot",text:"resetting instance"});
-                    await computeClient
-                        .reset({
-                            instance: instance,
-                            project: projectId,
-                            zone: zone
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
-                        });
-                }
-
-                /* Handle Delete Instance */
-                else if (operation === "delete") {
-                    node.status({fill:"blue",shape:"dot",text:"deleting instance"});
-                    await computeClient
-                        .delete({
-                            instance: instance,
-                            project: projectId,
-                            zone: zone
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
-                        });
-                }
-
-                /* Handle Create Instance */
-                else if (operation === "create") {
-                    node.status({fill:"blue",shape:"dot",text:"creating instance"});
-                    await computeClient
-                        .insert({
+                            
+                        msg.payload = response[0] || {}
+                        break;
+                    
+                    //create new gce instance of instance template using json in specified zone.
+                    case "create":
+                        node.status({ fill: "blue", shape: "dot", text: "creating instance" });
+                        const response = await computeClient.insert({
                             project: projectId,
                             zone: zone,
                             instanceResource: typeof template === "string" ? JSON.parse(template) : template
-                        })
-                        .then(response => {
-                            msg.payload = response.length ? response[0] : {};
                         });
+
+                        msg.payload = response[0] || {}
+                        break;
                 }
-                node.status({fill:"green",shape:"dot",text:"complete"});
+
+                node.status({ fill: "green", shape: "dot", text: "complete" });
                 node.send(msg);
             }
             catch (error) {
-                node.status({fill:"red",shape:"dot",text:"error"});
+                node.status({ fill: "red", shape: "dot", text: "error" });
                 if (done) {
                     done(error);
                 } else {
